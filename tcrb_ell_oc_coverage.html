@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>T CrB ELL O–C — Full Epoch Coverage</title>
 <style>
 .viz-root {
@@ -165,8 +166,9 @@ tr.missing-row td { color: var(--text-muted); font-style: italic; }
   </div>
 </div>
 
+<script src="./oc_data.js"></script>
 <script>
-const DATA_URL = './oc_data.json';
+const DATA_FILE = './oc_data.js';
 
 function reasonText(m) {
   const parts = [];
@@ -177,22 +179,16 @@ function reasonText(m) {
   return parts.join('; ');
 }
 
-async function main() {
+function main() {
   const stateMsg = document.getElementById('stateMsg');
-  let data;
-  try {
-    const resp = await fetch(DATA_URL, { cache: 'no-store' });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    data = await resp.json();
-  } catch (err) {
+  if (typeof OC_DATA === 'undefined') {
     stateMsg.classList.add('error');
-    stateMsg.innerHTML = `Couldn't load <code>${DATA_URL}</code> (${err.message}).<br>` +
-      `Make sure this file is served over http(s) from the same directory as oc_data.json ` +
-      `(opening the HTML directly via <code>file://</code> won't work), and that you've run ` +
-      `<code>update_data.py</code> at least once.`;
+    stateMsg.innerHTML = `Couldn't load <code>${DATA_FILE}</code>.<br>` +
+      `Make sure this file sits alongside oc_data.js (same directory as this HTML page) ` +
+      `and that you've run <code>update_data.py</code> at least once.`;
     return;
   }
-  render(data);
+  render(OC_DATA);
 }
 
 function render(data) {
