@@ -37,25 +37,3 @@ merges them in, re-fits every ELL epoch, and regenerates `oc_data.json` /
 `lightcurve_data.json` in place. `--no-fetch` re-fits from the existing CSV
 without hitting the network; `--skip-tls-verify` is only for networks with a
 TLS-intercepting proxy (not needed on most servers).
-
-## Known landmine
-
-There's a stray file at `tcrb/analysis/TCrB_V_1946-2026.csv` (~1.6 KB) — same
-filename as the real master CSV (`tcrb/TCrB_V_1946-2026.csv`, ~21.8 MB) but
-one directory down, and it contains old O–C results table data, not
-photometry. Easy to grab the wrong one by accident. Safe to delete.
-
-## Superseded files (safe to delete)
-
-Not read by anything in the "required" list above:
-
-- `oc_analysis.py`, `oc_results.json` — replaced by `update_data.py` / `oc_data.json`
-- `tcrb_2005_present_nightly.json`, `tcrb_2005_present_minima.json`,
-  `tcrb_2005_present_template.html` — intermediate build artifacts from before
-  the fetch-based rewrite
-- `tcrb_2025_2026_lightcurve.html` + its `_nightly.json`/`_template.html`,
-  `tcrb_2025_lightcurve.html` + its `_nightly.json` — earlier, narrower-range
-  light curve versions, all superseded by `tcrb_2005_present_lightcurve.html`
-- `tcrb_ell_oc.html` — the older year-indexed O–C chart (embedded-data style,
-  never converted to fetch-based); keep only if you specifically want that
-  variant alongside the coverage one
