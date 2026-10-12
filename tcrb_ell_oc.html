@@ -1,0 +1,349 @@
+<meta charset="utf-8">
+<title>T CrB — Ellipsoidal O–C Diagram</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --page:           #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --baseline:       #c3c2b7;
+  --series-1:       #2a78d6;
+  --series-1-soft:  rgba(42,120,214,0.35);
+  --trend:          #898781;
+  --border:         rgba(11,11,11,0.10);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --series-1:       #3987e5;
+    --series-1-soft:  rgba(57,135,229,0.40);
+    --trend:          #898781;
+    --border:         rgba(255,255,255,0.10);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1:      #1a1a19;
+  --page:           #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --baseline:       #383835;
+  --series-1:       #3987e5;
+  --series-1-soft:  rgba(57,135,229,0.40);
+  --trend:          #898781;
+  --border:         rgba(255,255,255,0.10);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); }
+.viz-root { background: var(--page); padding: 24px 16px 40px; }
+.card {
+  max-width: 980px;
+  margin: 0 auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 24px 16px;
+}
+h1 { font-size: 19px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 2px; }
+.sub b { color: var(--text-primary); font-weight: 600; }
+.caption { font-size: 12px; color: var(--text-muted); margin: 4px 0 18px; }
+
+.chart-wrap { position: relative; }
+svg { width: 100%; height: auto; display: block; overflow: visible; }
+.gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.axis-line { stroke: var(--baseline); stroke-width: 1; shape-rendering: crispEdges; }
+.zero-line { stroke: var(--baseline); stroke-width: 1.5; }
+.tick-label { fill: var(--text-muted); font-size: 11px; }
+.axis-title { fill: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.zero-label { fill: var(--text-secondary); font-size: 11px; font-weight: 500; }
+
+.errbar { stroke: var(--series-1-soft); stroke-width: 1.5; }
+.point { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+.hit { fill: transparent; cursor: pointer; }
+.point.hover { fill: var(--series-1); r: 6; }
+
+.trend-line { stroke: var(--trend); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
+.trend-label { fill: var(--text-secondary); font-size: 11.5px; font-weight: 500; }
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: opacity 80ms ease;
+  white-space: nowrap;
+  z-index: 5;
+}
+.tooltip.show { opacity: 1; }
+.tooltip .row { display: flex; justify-content: space-between; gap: 14px; }
+.tooltip .val { color: var(--text-primary); font-weight: 600; }
+.tooltip .hd { color: var(--text-primary); font-weight: 600; margin-bottom: 4px; font-size: 12.5px; }
+
+.controls { display: flex; justify-content: flex-end; margin: 4px 0 12px; }
+.toggle-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.toggle-btn:hover { color: var(--text-primary); border-color: var(--baseline); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; display: none; }
+table.show { display: table; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+td.val { color: var(--text-primary); font-weight: 500; }
+</style>
+
+<div class="viz-root">
+  <div class="card">
+    <h1>T CrB — Ellipsoidal (ELL) O&ndash;C Diagram</h1>
+    <p class="sub">Primary minima, <b>P = 227.5528 d</b>, <b>T₀ = HJD 2455828.9</b> (2011-09-24) &middot; AAVSO Johnson V, 1973&ndash;2026</p>
+    <p class="caption">27 minima measured from nightly-binned V photometry (quadratic fit to ±50 d windows around each predicted minimum, 3σ-clipped). Error bars = 1σ from fit covariance. Dashed line = weighted linear fit. Epoch 7 (2016.0) has a very large error bar — treat it as low-confidence, not a real 24-day offset.</p>
+
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 940 480" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <div class="controls">
+      <button class="toggle-btn" id="tableToggle">Show data table</button>
+    </div>
+
+    <table id="dataTable">
+      <thead>
+        <tr><th>Epoch (E)</th><th>Year</th><th>T_calc (HJD)</th><th>T_obs (HJD)</th><th>O&ndash;C (days)</th><th>±1σ</th><th>Nights used</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {"E":-10,"t_calc":2453553.372,"t_obs":2453551.827846543,"OC_days":-1.5441534570418298,"OC_err_days":2.2000331621146523,"n_nights":31,"year":2005.4940488946381},
+  {"E":-8,"t_calc":2454008.4776,"t_obs":2454004.924162345,"OC_days":-3.5534376548603177,"OC_err_days":2.901898788991394,"n_nights":11,"year":2006.7354086639589},
+  {"E":-7,"t_calc":2454236.0304,"t_obs":2454235.797502194,"OC_days":-0.23289780598133802,"OC_err_days":1.304117053777646,"n_nights":32,"year":2007.3679383621754},
+  {"E":-6,"t_calc":2454463.5831999998,"t_obs":2454462.349278321,"OC_days":-1.233921678736806,"OC_err_days":1.8935990473042394,"n_nights":14,"year":2007.9886281597835},
+  {"E":-5,"t_calc":2454691.136,"t_obs":2454693.6522208746,"OC_days":2.516220874618739,"OC_err_days":10.807029093117707,"n_nights":10,"year":2008.6206344832638},
+  {"E":-4,"t_calc":2454918.6888,"t_obs":2454920.871378081,"OC_days":2.1825780807994306,"OC_err_days":0.7960234178845423,"n_nights":46,"year":2009.2421133646053},
+  {"E":-2,"t_calc":2455373.7944,"t_obs":2455369.2157246894,"OC_days":-4.578675310593098,"OC_err_days":1.0474668381527843,"n_nights":25,"year":2010.470454040245},
+  {"E":-1,"t_calc":2455601.3471999997,"t_obs":2455609.952139841,"OC_days":8.604939841199666,"OC_err_days":1.946595047522147,"n_nights":29,"year":2011.130005862578},
+  {"E":1,"t_calc":2456056.4528,"t_obs":2456056.7177031497,"OC_days":0.26490314956754446,"OC_err_days":1.2839286074323526,"n_nights":41,"year":2012.3530538337423},
+  {"E":4,"t_calc":2456739.1111999997,"t_obs":2456739.860257776,"OC_days":0.7490577762946486,"OC_err_days":0.7009883071326791,"n_nights":48,"year":2014.2229048158247},
+  {"E":7,"t_calc":2457421.7695999998,"t_obs":2457397.4886955554,"OC_days":-24.28090444440022,"OC_err_days":9.46804414174506,"n_nights":40,"year":2016.0245592774736},
+  {"E":8,"t_calc":2457649.3224,"t_obs":2457650.46766742,"OC_days":1.1452674199827015,"OC_err_days":1.5948636818072628,"n_nights":55,"year":2016.7157586541528},
+  {"E":9,"t_calc":2457876.8752,"t_obs":2457876.57542239,"OC_days":-0.29977761022746563,"OC_err_days":1.9116785844058852,"n_nights":73,"year":2017.334453212027},
+  {"E":10,"t_calc":2458104.428,"t_obs":2458098.0958049796,"OC_days":-6.332195020280778,"OC_err_days":2.7690514510342292,"n_nights":25,"year":2017.941358369807},
+  {"E":11,"t_calc":2458331.9808,"t_obs":2458336.664139358,"OC_days":4.68333935784176,"OC_err_days":5.305400419916136,"n_nights":47,"year":2018.594970244816},
+  {"E":12,"t_calc":2458559.5335999997,"t_obs":2458549.3222835497,"OC_days":-10.211316450033337,"OC_err_days":3.5210157009151977,"n_nights":60,"year":2019.1775952973965},
+  {"E":13,"t_calc":2458787.0864,"t_obs":2458787.77648528,"OC_days":0.6900852802209556,"OC_err_days":3.053036426200971,"n_nights":28,"year":2019.8308944802195},
+  {"E":14,"t_calc":2459014.6392,"t_obs":2459014.6850153673,"OC_days":0.0458153672516346,"OC_err_days":0.7380147967281646,"n_nights":77,"year":2020.4513251785993},
+  {"E":15,"t_calc":2459242.192,"t_obs":2459238.1797940102,"OC_days":-4.0122059895657,"OC_err_days":1.8662454947308624,"n_nights":53,"year":2021.062136421946},
+  {"E":16,"t_calc":2459469.7448,"t_obs":2459461.595485187,"OC_days":-8.149314812850207,"OC_err_days":2.872246829039874,"n_nights":93,"year":2021.6742342059922},
+  {"E":17,"t_calc":2459697.2975999997,"t_obs":2459691.440591834,"OC_days":-5.857008165679872,"OC_err_days":2.3540801752310294,"n_nights":90,"year":2022.3039468269426},
+  {"E":18,"t_calc":2459924.8504,"t_obs":2459918.9720731783,"OC_days":-5.878326821606606,"OC_err_days":1.342574483143377,"n_nights":49,"year":2022.9273207484337},
+  {"E":19,"t_calc":2460152.4032,"t_obs":2460153.8610564517,"OC_days":1.457856451626867,"OC_err_days":0.5821974569925696,"n_nights":99,"year":2023.5708522094567},
+  {"E":20,"t_calc":2460379.956,"t_obs":2460380.6347131236,"OC_days":0.6787131237797439,"OC_err_days":0.4106686680143918,"n_nights":98,"year":2024.1916248992447},
+  {"E":21,"t_calc":2460607.5088,"t_obs":2460610.534124651,"OC_days":3.025324651040137,"OC_err_days":1.1556985098129346,"n_nights":97,"year":2024.819765367899},
+  {"E":22,"t_calc":2460835.0616,"t_obs":2460829.70619434,"OC_days":-5.35540566034615,"OC_err_days":0.4691643819796965,"n_nights":101,"year":2025.4197429981912},
+  {"E":23,"t_calc":2461062.6144,"t_obs":2461061.818749564,"OC_days":-0.7956504360772669,"OC_err_days":1.199132846494263,"n_nights":95,"year":2026.055667807024}
+];
+const FIT = { P: 227.5528, T0: 2455828.9, dP: -0.07479905404594422, dT0: 0.2519966225265277 };
+
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById('chart');
+const W = 940, H = 480;
+const M = { top: 20, right: 28, bottom: 46, left: 56 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+const years = DATA.map(d => d.year);
+const xMin = Math.floor(Math.min(...years)) - 0.6;
+const xMax = Math.ceil(Math.max(...years)) + 0.6;
+
+const ocVals = DATA.flatMap(d => [d.OC_days - d.OC_err_days, d.OC_days + d.OC_err_days]);
+let yMax = Math.max(...ocVals.map(Math.abs));
+yMax = Math.ceil(yMax / 2) * 2 + 2; // pad, round to even
+const yMin = -yMax;
+
+function xScale(year) { return M.left + (year - xMin) / (xMax - xMin) * plotW; }
+function yScale(oc) { return M.top + (yMax - oc) / (yMax - yMin) * plotH; }
+
+function el(tag, attrs) {
+  const e = document.createElementNS(svgNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// gridlines (horizontal, step chosen so we get ~6-8 lines)
+const range = yMax - yMin;
+let step = 2;
+if (range > 20) step = 5;
+if (range > 40) step = 10;
+for (let v = Math.ceil(yMin/step)*step; v <= yMax; v += step) {
+  if (v === 0) continue;
+  const y = yScale(v);
+  svg.appendChild(el('line', { class:'gridline', x1:M.left, x2:M.left+plotW, y1:y, y2:y }));
+  const lbl = el('text', { class:'tick-label', x:M.left-8, y:y+4, 'text-anchor':'end' });
+  lbl.textContent = v;
+  svg.appendChild(lbl);
+}
+
+// zero line
+const y0 = yScale(0);
+svg.appendChild(el('line', { class:'zero-line', x1:M.left, x2:M.left+plotW, y1:y0, y2:y0 }));
+const zeroLbl = el('text', { class:'zero-label', x:M.left+plotW, y:y0-6, 'text-anchor':'end' });
+zeroLbl.textContent = 'O–C = 0';
+svg.appendChild(zeroLbl);
+
+// x axis ticks (every 2 years)
+for (let yr = Math.ceil(xMin/2)*2; yr <= xMax; yr += 2) {
+  const x = xScale(yr);
+  svg.appendChild(el('line', { class:'axis-line', x1:x, x2:x, y1:M.top+plotH, y2:M.top+plotH+5 }));
+  const lbl = el('text', { class:'tick-label', x:x, y:M.top+plotH+20, 'text-anchor':'middle' });
+  lbl.textContent = yr;
+  svg.appendChild(lbl);
+}
+svg.appendChild(el('line', { class:'axis-line', x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH }));
+
+// axis titles
+const yTitle = el('text', { class:'axis-title', x:16, y:M.top+plotH/2, 'text-anchor':'middle',
+  transform:`rotate(-90 16 ${M.top+plotH/2})` });
+yTitle.textContent = 'O–C (days)';
+svg.appendChild(yTitle);
+const xTitle = el('text', { class:'axis-title', x:M.left+plotW/2, y:H-6, 'text-anchor':'middle' });
+xTitle.textContent = 'Year';
+svg.appendChild(xTitle);
+
+// trend line (weighted linear fit, drawn across the E-range of the data)
+const Es = DATA.map(d => d.E);
+const Emin = Math.min(...Es), Emax = Math.max(...Es);
+function yearOfE(E) {
+  const jd = FIT.T0 + E * FIT.P;
+  // Julian date -> decimal year (Gregorian, good enough for display)
+  const days = jd - 2440587.5; // days since 1970-01-01 00:00 UT
+  const ms = days * 86400000;
+  const d = new Date(ms);
+  const ys = Date.UTC(d.getUTCFullYear(),0,1);
+  const ye = Date.UTC(d.getUTCFullYear()+1,0,1);
+  return d.getUTCFullYear() + (d.getTime()-ys)/(ye-ys);
+}
+function trendOC(E) { return FIT.dT0 + FIT.dP * E; }
+const trendPts = [Emin, Emax].map(E => [xScale(yearOfE(E)), yScale(trendOC(E))]);
+svg.appendChild(el('line', { class:'trend-line', x1:trendPts[0][0], y1:trendPts[0][1], x2:trendPts[1][0], y2:trendPts[1][1] }));
+const trendLbl = el('text', { class:'trend-label', x:trendPts[1][0]-4, y:trendPts[1][1]-8, 'text-anchor':'end' });
+trendLbl.textContent = `ΔP = ${FIT.dP.toFixed(4)} d/cycle`;
+svg.appendChild(trendLbl);
+
+// data points + error bars + hit targets
+const tooltip = document.getElementById('tooltip');
+const wrap = document.querySelector('.chart-wrap');
+
+DATA.forEach(d => {
+  const x = xScale(d.year);
+  const yTop = yScale(d.OC_days + d.OC_err_days);
+  const yBot = yScale(d.OC_days - d.OC_err_days);
+  const y = yScale(d.OC_days);
+
+  svg.appendChild(el('line', { class:'errbar', x1:x, x2:x, y1:yTop, y2:yBot }));
+  svg.appendChild(el('line', { class:'errbar', x1:x-4, x2:x+4, y1:yTop, y2:yTop }));
+  svg.appendChild(el('line', { class:'errbar', x1:x-4, x2:x+4, y1:yBot, y2:yBot }));
+
+  const pt = el('circle', { class:'point', cx:x, cy:y, r:5 });
+  svg.appendChild(pt);
+
+  const hit = el('circle', { class:'hit', cx:x, cy:y, r:14, tabindex:0 });
+  hit.addEventListener('pointerenter', show);
+  hit.addEventListener('pointermove', show);
+  hit.addEventListener('focus', show);
+  hit.addEventListener('pointerleave', hide);
+  hit.addEventListener('blur', hide);
+  svg.appendChild(hit);
+
+  function show(evt) {
+    pt.setAttribute('r', 6.5);
+    const rect = wrap.getBoundingClientRect();
+    const svgRect = svg.getBoundingClientRect();
+    const scaleX = svgRect.width / W;
+    const px = svgRect.left - rect.left + x*scaleX;
+    const py = svgRect.top - rect.top + y*scaleX;
+    tooltip.innerHTML = '';
+    const hd = document.createElement('div'); hd.className='hd'; hd.textContent = `Epoch ${d.E} · ${d.year.toFixed(2)}`;
+    tooltip.appendChild(hd);
+    const rows = [
+      ['O–C', `${d.OC_days>=0?'+':''}${d.OC_days.toFixed(2)} ± ${d.OC_err_days.toFixed(2)} d`],
+      ['T_obs (HJD)', d.t_obs.toFixed(3)],
+      ['Nights used', d.n_nights]
+    ];
+    rows.forEach(([k,v]) => {
+      const r = document.createElement('div'); r.className='row';
+      const kk = document.createElement('span'); kk.textContent = k;
+      const vv = document.createElement('span'); vv.className='val'; vv.textContent = v;
+      r.appendChild(kk); r.appendChild(vv);
+      tooltip.appendChild(r);
+    });
+    tooltip.style.left = (px+14)+'px';
+    tooltip.style.top = (py-10)+'px';
+    tooltip.classList.add('show');
+  }
+  function hide() {
+    pt.setAttribute('r', 5);
+    tooltip.classList.remove('show');
+  }
+});
+
+// table view
+const tbody = document.getElementById('tableBody');
+DATA.forEach(d => {
+  const tr = document.createElement('tr');
+  const cells = [
+    d.E,
+    d.year.toFixed(3),
+    d.t_calc.toFixed(3),
+    d.t_obs.toFixed(3),
+    (d.OC_days>=0?'+':'')+d.OC_days.toFixed(3),
+    '±'+d.OC_err_days.toFixed(3),
+    d.n_nights
+  ];
+  cells.forEach((c,i) => {
+    const td = document.createElement('td');
+    if (i===4) td.className='val';
+    td.textContent = c;
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
+document.getElementById('tableToggle').addEventListener('click', (e) => {
+  const t = document.getElementById('dataTable');
+  t.classList.toggle('show');
+  e.target.textContent = t.classList.contains('show') ? 'Hide data table' : 'Show data table';
+});
+</script>

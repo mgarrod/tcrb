@@ -1,0 +1,374 @@
+<meta charset="utf-8">
+<title>T CrB 2005–Present Light Curve — ELL Minima</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --page:           #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --baseline:       #c3c2b7;
+  --series-1:       #2a78d6;
+  --series-1-soft:  rgba(42,120,214,0.14);
+  --series-2:       #eb6834;
+  --pending:        #898781;
+  --trend:          #898781;
+  --border:         rgba(11,11,11,0.10);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --series-1:       #3987e5;
+    --series-1-soft:  rgba(57,135,229,0.16);
+    --series-2:       #d95926;
+    --pending:        #898781;
+    --trend:          #898781;
+    --border:         rgba(255,255,255,0.10);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1:      #1a1a19;
+  --page:           #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --baseline:       #383835;
+  --series-1:       #3987e5;
+  --series-1-soft:  rgba(57,135,229,0.16);
+  --series-2:       #d95926;
+  --pending:        #898781;
+  --trend:          #898781;
+  --border:         rgba(255,255,255,0.10);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); }
+.viz-root { background: var(--page); padding: 24px 16px 40px; }
+.card {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 24px 16px;
+}
+h1 { font-size: 19px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 2px; }
+.sub b { color: var(--text-primary); font-weight: 600; }
+.caption { font-size: 12px; color: var(--text-muted); margin: 4px 0 14px; }
+
+.legend { display: flex; gap: 20px; margin: 2px 0 14px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-secondary); }
+.legend-swatch { width: 18px; height: 0; border-top-width: 2.5px; border-top-style: solid; }
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+.chart-scroll { overflow-x: auto; border-radius: 6px; }
+.chart-wrap { position: relative; width: max-content; }
+svg { display: block; }
+.gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.year-line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.axis-line { stroke: var(--baseline); stroke-width: 1; shape-rendering: crispEdges; }
+.tick-label { fill: var(--text-muted); font-size: 11px; }
+.year-label { fill: var(--text-secondary); font-size: 11.5px; font-weight: 600; }
+.axis-title { fill: var(--text-secondary); font-size: 12px; font-weight: 500; }
+
+.raw-point { fill: var(--series-1); opacity: 0.5; }
+.roll-line { stroke: var(--trend); stroke-width: 1.5; fill: none; opacity: 0.85; }
+.hit { fill: transparent; cursor: pointer; }
+
+.obs-line { stroke: var(--series-1); stroke-width: 1.75; }
+.calc-line { stroke: var(--series-2); stroke-width: 1.75; stroke-dasharray: 5 4; }
+.pending-line { stroke: var(--pending); stroke-width: 1.75; stroke-dasharray: 2 3; }
+.obs-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 1.5; }
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: opacity 80ms ease;
+  white-space: nowrap;
+  z-index: 5;
+}
+.tooltip.show { opacity: 1; }
+.tooltip .row { display: flex; justify-content: space-between; gap: 14px; }
+.tooltip .val { color: var(--text-primary); font-weight: 600; }
+.tooltip .hd { color: var(--text-primary); font-weight: 600; margin-bottom: 4px; font-size: 12.5px; }
+.tooltip .reason { color: var(--text-muted); font-size: 11px; margin-top: 4px; max-width: 220px; white-space: normal; }
+
+.scroll-hint { font-size: 11px; color: var(--text-muted); margin: 6px 0 0; }
+
+.controls { display: flex; justify-content: flex-end; margin: 6px 0 12px; }
+.toggle-btn {
+  font-family: inherit; font-size: 12px; font-weight: 500;
+  color: var(--text-secondary); background: transparent;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+}
+.toggle-btn:hover { color: var(--text-primary); border-color: var(--baseline); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; display: none; }
+table.show { display: table; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+td.val { color: var(--text-primary); font-weight: 500; }
+tr.na-row td { color: var(--text-muted); font-style: italic; }
+</style>
+
+<div class="viz-root">
+  <div class="card">
+    <h1>T CrB — Johnson V Light Curve, 2005 &ndash; Present</h1>
+    <p class="sub">Ellipsoidal (ELL) ephemeris: <b>P = 227.5528 d</b>, <b>T₀ = HJD 2455828.9</b> (2011-09-24) &middot; 35 consecutive predicted epochs (E&minus;10 to E24)</p>
+    <p class="caption">Faint dots = nightly means (__N_NIGHTS__ nights, __N_OBS__ raw observations); orange line = 7-day rolling mean, broken across gaps &gt;20 days so it never bridges real data gaps. 27 epochs have a fitted (observed) minimum; 7 historical epochs (2005&ndash;2016) lack enough coverage to fit — shown as a muted line only; the most recent epoch (Sep 2026) is predicted but not yet confirmed.</p>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--series-1)"></span>Nightly mean magnitude</div>
+      <div class="legend-item"><span class="legend-swatch" style="border-color:var(--trend)"></span>7-day rolling mean</div>
+      <div class="legend-item"><span class="legend-swatch" style="border-color:var(--series-1)"></span>Observed minimum (fit)</div>
+      <div class="legend-item"><span class="legend-swatch" style="border-color:var(--series-2); border-top-style:dashed"></span>Calculated minimum (ephemeris)</div>
+      <div class="legend-item"><span class="legend-swatch" style="border-color:var(--pending); border-top-style:dotted"></span>No fit / not yet confirmed</div>
+    </div>
+
+    <div class="chart-scroll">
+      <div class="chart-wrap">
+        <svg id="chart"></svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+    </div>
+    <p class="scroll-hint">Scroll horizontally to see the full 2005–2026 span in detail.</p>
+
+    <div class="controls">
+      <button class="toggle-btn" id="tableToggle">Show all 35 epochs</button>
+    </div>
+
+    <table id="dataTable">
+      <thead>
+        <tr><th>Epoch (E)</th><th>Predicted (calc)</th><th>Observed (fit)</th><th>O&ndash;C (days)</th><th>Status</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const NIGHTS = __NIGHTLY_DATA__;
+const MINIMA = __MINIMA_DATA__;
+const JD_START = __JD_START__, JD_END = __JD_END__;
+
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById('chart');
+const YEARS_SPAN = (JD_END - JD_START) / 365.25;
+const PX_PER_YEAR = 130;
+const W = Math.round(YEARS_SPAN * PX_PER_YEAR) + 100;
+const H = 460;
+const M = { top: 20, right: 24, bottom: 40, left: 56 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+svg.setAttribute('width', W);
+svg.setAttribute('height', H);
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+function xScale(jd) { return M.left + (jd - JD_START) / (JD_END - JD_START) * plotW; }
+
+const mags = NIGHTS.map(d => d.mag);
+let yMin = Math.min(...mags) - 0.15, yMax = Math.max(...mags) + 0.15;
+yMin = Math.floor(yMin*10)/10; yMax = Math.ceil(yMax*10)/10;
+function yPix(mag) { return M.top + (mag - yMin) / (yMax - yMin) * plotH; }
+
+function el(tag, attrs) {
+  const e = document.createElementNS(svgNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// gridlines (0.2 mag step)
+for (let v = Math.ceil(yMin/0.2)*0.2; v <= yMax+1e-9; v += 0.2) {
+  const y = yPix(v);
+  svg.appendChild(el('line', { class:'gridline', x1:M.left, x2:M.left+plotW, y1:y, y2:y }));
+  const lbl = el('text', { class:'tick-label', x:M.left-8, y:y+4, 'text-anchor':'end' });
+  lbl.textContent = v.toFixed(1);
+  svg.appendChild(lbl);
+}
+
+// x axis: yearly ticks
+for (let y = 2005; y <= 2027; y++) {
+  const jd = Date.UTC(y,0,1)/86400000 + 2440587.5;
+  if (jd < JD_START || jd > JD_END) continue;
+  const x = xScale(jd);
+  svg.appendChild(el('line', { class:'year-line', x1:x, x2:x, y1:M.top, y2:M.top+plotH }));
+  svg.appendChild(el('line', { class:'axis-line', x1:x, x2:x, y1:M.top+plotH, y2:M.top+plotH+5 }));
+  const lbl = el('text', { class:'year-label', x:x+4, y:M.top+plotH+18, 'text-anchor':'start' });
+  lbl.textContent = y;
+  svg.appendChild(lbl);
+}
+svg.appendChild(el('line', { class:'axis-line', x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH }));
+svg.appendChild(el('line', { class:'axis-line', x1:M.left, x2:M.left, y1:M.top, y2:M.top+plotH }));
+
+const yTitle = el('text', { class:'axis-title', x:16, y:M.top+plotH/2, 'text-anchor':'middle',
+  transform:`rotate(-90 16 ${M.top+plotH/2})` });
+yTitle.textContent = 'Johnson V magnitude';
+svg.appendChild(yTitle);
+
+// rolling mean line, broken across gaps > 20 days
+let rollPath = '';
+let prevJd = null;
+NIGHTS.forEach((d) => {
+  const x = xScale(d.jd), y = yPix(d.roll);
+  if (prevJd === null || (d.jd - prevJd) > 20) {
+    rollPath += 'M' + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+  } else {
+    rollPath += 'L' + x.toFixed(2) + ' ' + y.toFixed(2) + ' ';
+  }
+  prevJd = d.jd;
+});
+svg.appendChild(el('path', { class:'roll-line', d: rollPath }));
+
+// raw nightly points + hit targets
+const tooltip = document.getElementById('tooltip');
+const wrap = document.querySelector('.chart-wrap');
+const scrollBox = document.querySelector('.chart-scroll');
+
+NIGHTS.forEach(d => {
+  const x = xScale(d.jd), y = yPix(d.mag);
+  const pt = el('circle', { class:'raw-point', cx:x, cy:y, r:1.8 });
+  svg.appendChild(pt);
+
+  const hit = el('circle', { class:'hit', cx:x, cy:y, r:7, tabindex:0 });
+  hit.addEventListener('pointerenter', show);
+  hit.addEventListener('pointermove', show);
+  hit.addEventListener('focus', show);
+  hit.addEventListener('pointerleave', hide);
+  hit.addEventListener('blur', hide);
+  svg.appendChild(hit);
+
+  function show() {
+    pt.setAttribute('r', 3.6);
+    const rect = wrap.getBoundingClientRect();
+    const px = x - scrollBox.scrollLeft;
+    const py = y;
+    tooltip.innerHTML = '';
+    const hd = document.createElement('div'); hd.className='hd'; hd.textContent = d.date;
+    tooltip.appendChild(hd);
+    [['Mean V', `${d.mag.toFixed(3)} ± ${d.sd.toFixed(3)}`], ['Observations', d.n]].forEach(([k,v]) => {
+      const r = document.createElement('div'); r.className='row';
+      const kk = document.createElement('span'); kk.textContent = k;
+      const vv = document.createElement('span'); vv.className='val'; vv.textContent = v;
+      r.appendChild(kk); r.appendChild(vv);
+      tooltip.appendChild(r);
+    });
+    tooltip.style.left = (px+14)+'px';
+    tooltip.style.top = (py-10)+'px';
+    tooltip.classList.add('show');
+  }
+  function hide() { pt.setAttribute('r', 1.8); tooltip.classList.remove('show'); }
+});
+
+function place(x, y) {
+  return [x - scrollBox.scrollLeft + 14, y - 10];
+}
+function tipRow(k, v) {
+  const r = document.createElement('div'); r.className='row';
+  const kk = document.createElement('span'); kk.textContent = k;
+  const vv = document.createElement('span'); vv.className='val'; vv.textContent = v;
+  r.appendChild(kk); r.appendChild(vv);
+  return r;
+}
+
+// minima markers
+MINIMA.forEach(m => {
+  const xCalc = xScale(m.t_calc);
+  const isFit = m.status === 'fit';
+  svg.appendChild(el('line', {
+    class: isFit ? 'calc-line' : 'pending-line',
+    x1:xCalc, x2:xCalc, y1:M.top, y2:M.top+plotH
+  }));
+
+  let obsX = null, obsY = null;
+  if (isFit) {
+    obsX = xScale(m.t_obs);
+    obsY = yPix(m.mag_min);
+    svg.appendChild(el('line', { class:'obs-line', x1:obsX, x2:obsX, y1:M.top, y2:M.top+plotH }));
+    svg.appendChild(el('circle', { class:'obs-dot', cx:obsX, cy:obsY, r:5 }));
+  }
+
+  const hit = el('circle', { class:'hit', cx: isFit ? obsX : xCalc, cy: isFit ? obsY : M.top+16, r:12, tabindex:0 });
+  const show = () => {
+    const [px,py] = place(isFit ? obsX : xCalc, isFit ? obsY : M.top+16);
+    tooltip.innerHTML = '';
+    const hd = document.createElement('div'); hd.className='hd'; hd.textContent = `Epoch ${m.E}`;
+    tooltip.appendChild(hd);
+    if (isFit) {
+      tooltip.appendChild(tipRow('O–C', `${m.OC>=0?'+':''}${m.OC.toFixed(2)} d`));
+    } else if (m.status === 'gap') {
+      const reason = document.createElement('div'); reason.className = 'reason';
+      reason.textContent = `No fit: only ${m.n} night${m.n===1?'':'s'} in window (${m.before} before / ${m.after} after)`;
+      tooltip.appendChild(reason);
+    } else {
+      const reason = document.createElement('div'); reason.className = 'reason';
+      reason.textContent = 'Predicted minimum — not enough post-minimum data yet to confirm';
+      tooltip.appendChild(reason);
+    }
+    tooltip.style.left = px+'px'; tooltip.style.top = py+'px';
+    tooltip.classList.add('show');
+  };
+  const hide = () => tooltip.classList.remove('show');
+  hit.addEventListener('pointerenter', show); hit.addEventListener('pointermove', show);
+  hit.addEventListener('focus', show); hit.addEventListener('pointerleave', hide); hit.addEventListener('blur', hide);
+  svg.appendChild(hit);
+});
+
+// table
+const tbody = document.getElementById('tableBody');
+function fmtDate(jd) {
+  const d = new Date((jd-2440587.5)*86400000);
+  return d.toISOString().slice(0,10);
+}
+MINIMA.forEach(m => {
+  const tr = document.createElement('tr');
+  const isFit = m.status === 'fit';
+  if (!isFit) tr.className = 'na-row';
+  let statusText;
+  if (isFit) statusText = 'Fitted';
+  else if (m.status === 'gap') statusText = `No fit — ${m.n} night(s) in window`;
+  else statusText = 'Predicted, unconfirmed';
+  const cells = [
+    m.E,
+    `${fmtDate(m.t_calc)} (JD ${m.t_calc.toFixed(2)})`,
+    isFit ? `${fmtDate(m.t_obs)} (JD ${m.t_obs.toFixed(2)})` : '—',
+    isFit ? `${m.OC>=0?'+':''}${m.OC.toFixed(2)}` : '—',
+    statusText
+  ];
+  cells.forEach((c,i) => {
+    const td = document.createElement('td');
+    if (i===3 && isFit) td.className='val';
+    td.textContent = c;
+    tr.appendChild(td);
+  });
+  tbody.appendChild(tr);
+});
+document.getElementById('tableToggle').addEventListener('click', (e) => {
+  const t = document.getElementById('dataTable');
+  t.classList.toggle('show');
+  e.target.textContent = t.classList.contains('show') ? 'Hide epoch table' : 'Show all 35 epochs';
+});
+</script>

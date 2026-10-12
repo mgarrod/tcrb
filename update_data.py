@@ -405,6 +405,18 @@ def weighted_linear_fit(fitted):
     return dP, dT0
 
 
+def write_json_and_js(path_no_ext, varname, obj, **json_kwargs):
+    """Writes both <path>.json (plain, for any tool/interop) and <path>.js
+    (`const VARNAME = {...};`, loadable via <script src> so the HTML pages
+    work when opened directly via file:// — fetch() of local files is
+    blocked by browsers, but <script src> of local files is not)."""
+    payload = json.dumps(obj, **json_kwargs)
+    with open(path_no_ext + '.json', 'w') as f:
+        f.write(payload)
+    with open(path_no_ext + '.js', 'w') as f:
+        f.write(f'const {varname} = {payload};\n')
+
+
 def build_pending_and_gaps(gaps, jd_max_data, half_window):
     """Split 'gap' epochs into true historical gaps (window fully elapsed, just
     not enough data) vs. pending (the window extends past what we've downloaded
@@ -492,40 +504,38 @@ def main():
     params = {'P': args.period, 'T0': args.t0, 'dP': dP, 'dT0': dT0}
 
     # ---- diff against the previous oc_data.json, if any, for the summary ----
-    oc_path = os.path.join(out_dir, 'oc_data.json')
+    oc_base = os.path.join(out_dir, 'oc_data')
     prev_fitted_epochs = set()
-    if os.path.exists(oc_path):
+    if os.path.exists(oc_base + '.json'):
         try:
-            with open(oc_path) as f:
+            with open(oc_base + '.json') as f:
                 prev = json.load(f)
             prev_fitted_epochs = {r['E'] for r in prev.get('results', [])}
         except (json.JSONDecodeError, KeyError):
             pass
     new_fitted_epochs = {r['E'] for r in fitted} - prev_fitted_epochs
 
-    # ---- write oc_data.json ----
-    with open(oc_path, 'w') as f:
-        json.dump({
-            'generated_at': generated_at,
-            'data_through': data_through,
-            'params': params,
-            'results': fitted,
-            'missing': gaps,
-        }, f, indent=2)
-    print(f"Wrote {oc_path}")
+    # ---- write oc_data.json + oc_data.js ----
+    write_json_and_js(oc_base, 'OC_DATA', {
+        'generated_at': generated_at,
+        'data_through': data_through,
+        'params': params,
+        'results': fitted,
+        'missing': gaps,
+    }, indent=2)
+    print(f"Wrote {oc_base}.json and .js")
 
-    # ---- write lightcurve_data.json ----
+    # ---- write lightcurve_data.json + lightcurve_data.js ----
     minima = sorted(fitted + gaps, key=lambda r: r['E'])
-    lc_path = os.path.join(out_dir, 'lightcurve_data.json')
-    with open(lc_path, 'w') as f:
-        json.dump({
-            'generated_at': generated_at,
-            'data_through': data_through,
-            'params': {'P': args.period, 'T0': args.t0},
-            'nights': nights,
-            'minima': minima,
-        }, f, separators=(',', ':'))
-    print(f"Wrote {lc_path}")
+    lc_base = os.path.join(out_dir, 'lightcurve_data')
+    write_json_and_js(lc_base, 'LIGHTCURVE_DATA', {
+        'generated_at': generated_at,
+        'data_through': data_through,
+        'params': {'P': args.period, 'T0': args.t0},
+        'nights': nights,
+        'minima': minima,
+    }, separators=(',', ':'))
+    print(f"Wrote {lc_base}.json and .js")
 
     # ---- summary ----
     n_pending = sum(1 for g in gaps if g['status'] == 'pending')
