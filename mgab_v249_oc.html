@@ -1,0 +1,467 @@
+<meta charset="utf-8">
+<title>MGAB-V249 — Eclipse Timing (O–C) Diagram</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --page:           #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --baseline:       #c3c2b7;
+  --series-1:       #2a78d6;
+  --series-1-soft:  rgba(42,120,214,0.35);
+  --series-2:       #c2572a;
+  --series-2-soft:  rgba(194,87,42,0.35);
+  --trend:          #898781;
+  --border:         rgba(11,11,11,0.10);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --series-1:       #3987e5;
+    --series-1-soft:  rgba(57,135,229,0.40);
+    --series-2:       #e0773f;
+    --series-2-soft:  rgba(224,119,63,0.40);
+    --trend:          #898781;
+    --border:         rgba(255,255,255,0.10);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1:      #1a1a19;
+  --page:           #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --baseline:       #383835;
+  --series-1:       #3987e5;
+  --series-1-soft:  rgba(57,135,229,0.40);
+  --series-2:       #e0773f;
+  --series-2-soft:  rgba(224,119,63,0.40);
+  --trend:          #898781;
+  --border:         rgba(255,255,255,0.10);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); }
+.viz-root { background: var(--page); padding: 24px 16px 40px; }
+.card {
+  max-width: 980px;
+  margin: 0 auto 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 24px 16px;
+}
+h1 { font-size: 19px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+h2 { font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 2px; }
+.sub b { color: var(--text-primary); font-weight: 600; }
+.caption { font-size: 12px; color: var(--text-muted); margin: 4px 0 18px; }
+
+.chart-wrap { position: relative; }
+svg { width: 100%; height: auto; display: block; overflow: visible; }
+.gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.axis-line { stroke: var(--baseline); stroke-width: 1; shape-rendering: crispEdges; }
+.zero-line { stroke: var(--baseline); stroke-width: 1.5; }
+.tick-label { fill: var(--text-muted); font-size: 11px; }
+.axis-title { fill: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.zero-label { fill: var(--text-secondary); font-size: 11px; font-weight: 500; }
+
+.errbar { stroke: var(--series-1-soft); stroke-width: 1.5; }
+.point { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+.point2 { fill: var(--series-2); opacity: 0.55; }
+.hit { fill: transparent; cursor: pointer; }
+.point.hover { fill: var(--series-1); r: 6; }
+
+.trend-line { stroke: var(--trend); stroke-width: 2; stroke-dasharray: 5 4; fill: none; }
+.trend-label { fill: var(--text-secondary); font-size: 11.5px; font-weight: 500; }
+.min-line { stroke: var(--series-2); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.6; }
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: opacity 80ms ease;
+  white-space: nowrap;
+  z-index: 5;
+}
+.tooltip.show { opacity: 1; }
+.tooltip .row { display: flex; justify-content: space-between; gap: 14px; }
+.tooltip .val { color: var(--text-primary); font-weight: 600; }
+.tooltip .hd { color: var(--text-primary); font-weight: 600; margin-bottom: 4px; font-size: 12.5px; }
+
+.controls { display: flex; justify-content: flex-end; margin: 4px 0 12px; }
+.toggle-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.toggle-btn:hover { color: var(--text-primary); border-color: var(--baseline); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; display: none; }
+table.show { display: table; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+td.val { color: var(--text-primary); font-weight: 500; }
+
+.note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 18px;
+}
+.note b { color: var(--text-primary); }
+</style>
+
+<div class="viz-root">
+  <div class="card">
+    <h1>MGAB-V249 — Eclipse Timing (O&ndash;C) Diagram</h1>
+    <p class="sub">Hot subdwarf + white dwarf eclipsing binary (VSX type E/WD+IBWD) &middot; <b>P = 0.0273195 d</b> (39.32 min) &middot; AAVSO Johnson V</p>
+    <p class="caption" id="caption">loading…</p>
+
+    <div class="note" id="dataNote"></div>
+
+    <div class="chart-wrap">
+      <svg id="chartOC" viewBox="0 0 940 440" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="tooltip" id="tooltipOC"></div>
+    </div>
+
+    <div class="controls">
+      <button class="toggle-btn" id="tableToggle">Show data table</button>
+    </div>
+
+    <table id="dataTable">
+      <thead>
+        <tr><th>Epoch (E)</th><th>Run date</th><th>T_calc (HJD)</th><th>T_obs (HJD)</th><th>O&ndash;C (s)</th><th>±1σ</th><th>Points used</th><th>Observer(s)</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Phase-folded light curve</h2>
+    <p class="sub">All usable V observations folded on the fitted eclipse epoch &middot; phase 0 = adopted eclipse minimum</p>
+    <p class="caption">Context for the O&ndash;C diagram above — every point, regardless of observing run, folded onto one orbital cycle. Dashed line marks the adopted minimum (phase 0).</p>
+    <div class="chart-wrap">
+      <svg id="chartFold" viewBox="0 0 940 380" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="tooltip" id="tooltipFold"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./oc_data_mgab_v249.js"></script>
+<script>
+const DATA = MGAB_V249_OC_DATA;
+const svgNS = "http://www.w3.org/2000/svg";
+
+function el(tag, attrs) {
+  const e = document.createElementNS(svgNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+// ---- caption / note ----
+document.getElementById('caption').textContent =
+  `${DATA.results.length} eclipse-timing point(s) measured from phase-folded AAVSO V photometry, one per observing run `
+  + `(all points within that run folded onto the nearest predicted minimum, 0.27P half-window, weighted quadratic fit). `
+  + `Error bars = 1σ from fit covariance. Data through ${DATA.data_through}.`;
+
+document.getElementById('dataNote').innerHTML =
+  `<b>Reading this honestly:</b> this baseline currently spans only `
+  + `${DATA.results.length ? Math.ceil((new Date(DATA.results[DATA.results.length-1].run_start) - new Date(DATA.results[0].run_start)) / 86400000) : 0} days `
+  + `across ${DATA.results.length} observing run(s), all from ${DATA.observers.join(', ')}. At a 39-minute period, a single AAVSO night spans hundreds `
+  + `of cycles but only 1&ndash;2 points land inside any one eclipse — so each point here is a per-<i>night</i> minimum timing (all that night's cycles `
+  + `folded together), not a per-cycle one. Every O&ndash;C value is consistent with zero within its error bar: there's no detectable period change yet, `
+  + `only confirmation that the adopted ephemeris still tracks the eclipse. This will sharpen automatically as more AAVSO V photometry accumulates.`;
+
+// ============================================================
+// Chart 1: O-C diagram (seconds vs. calendar date)
+// ============================================================
+(function () {
+  const svg = document.getElementById('chartOC');
+  const W = 940, H = 440;
+  const M = { top: 20, right: 28, bottom: 46, left: 56 };
+  const plotW = W - M.left - M.right;
+  const plotH = H - M.top - M.bottom;
+
+  const RESULTS = DATA.results;
+  const JD_UNIX_EPOCH = 2440587.5;
+  function jdToDate(jd) { return new Date((jd - JD_UNIX_EPOCH) * 86400000); }
+  function shortDate(jd) {
+    return jdToDate(jd).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  const jds = RESULTS.map(d => d.t_calc);
+  const jdMin = Math.min(...jds), jdMax = Math.max(...jds);
+  const pad = Math.max((jdMax - jdMin) * 0.12, 1.5);
+  const xMin = jdMin - pad, xMax = jdMax + pad;
+
+  const ocVals = RESULTS.flatMap(d => [d.OC_sec - (d.OC_err_sec||0), d.OC_sec + (d.OC_err_sec||0)]);
+  let yMax = Math.max(...ocVals.map(Math.abs), 5);
+  yMax = Math.ceil(yMax / 5) * 5 + 5;
+  const yMin = -yMax;
+
+  function xScale(jd) { return M.left + (jd - xMin) / (xMax - xMin) * plotW; }
+  function yScale(oc) { return M.top + (yMax - oc) / (yMax - yMin) * plotH; }
+
+  // gridlines
+  const range = yMax - yMin;
+  let step = 5;
+  if (range > 40) step = 10;
+  if (range > 80) step = 20;
+  for (let v = Math.ceil(yMin/step)*step; v <= yMax; v += step) {
+    if (v === 0) continue;
+    const y = yScale(v);
+    svg.appendChild(el('line', { class:'gridline', x1:M.left, x2:M.left+plotW, y1:y, y2:y }));
+    const lbl = el('text', { class:'tick-label', x:M.left-8, y:y+4, 'text-anchor':'end' });
+    lbl.textContent = v;
+    svg.appendChild(lbl);
+  }
+
+  const y0 = yScale(0);
+  svg.appendChild(el('line', { class:'zero-line', x1:M.left, x2:M.left+plotW, y1:y0, y2:y0 }));
+  const zeroLbl = el('text', { class:'zero-label', x:M.left+plotW, y:y0-6, 'text-anchor':'end' });
+  zeroLbl.textContent = 'O–C = 0';
+  svg.appendChild(zeroLbl);
+
+  // x axis: one tick per result's run date, plus the two edges
+  const tickJds = [...new Set(RESULTS.map(d => Math.round(d.t_calc)))];
+  tickJds.forEach(jd => {
+    const x = xScale(jd);
+    svg.appendChild(el('line', { class:'axis-line', x1:x, x2:x, y1:M.top+plotH, y2:M.top+plotH+5 }));
+    const lbl = el('text', { class:'tick-label', x:x, y:M.top+plotH+20, 'text-anchor':'middle' });
+    lbl.textContent = shortDate(jd);
+    svg.appendChild(lbl);
+  });
+  svg.appendChild(el('line', { class:'axis-line', x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH }));
+
+  const yTitle = el('text', { class:'axis-title', x:16, y:M.top+plotH/2, 'text-anchor':'middle',
+    transform:`rotate(-90 16 ${M.top+plotH/2})` });
+  yTitle.textContent = 'O–C (seconds)';
+  svg.appendChild(yTitle);
+  const xTitle = el('text', { class:'axis-title', x:M.left+plotW/2, y:H-6, 'text-anchor':'middle' });
+  xTitle.textContent = '2026';
+  svg.appendChild(xTitle);
+
+  // trend line (weighted linear fit) — only if at least 2 points
+  const P = DATA.params;
+  if (P.dP_sec !== null && RESULTS.length >= 2) {
+    const Es = RESULTS.map(d => d.E);
+    const Emin = Math.min(...Es), Emax = Math.max(...Es);
+    function jdOfE(E) { return P.T0_ref + E * DATA.params.P; }
+    function trendOC(E) { return P.dT0_sec + P.dP_sec * E; }
+    const trendPts = [Emin, Emax].map(E => [xScale(jdOfE(E)), yScale(trendOC(E))]);
+    svg.appendChild(el('line', { class:'trend-line', x1:trendPts[0][0], y1:trendPts[0][1], x2:trendPts[1][0], y2:trendPts[1][1] }));
+    const trendLbl = el('text', { class:'trend-label', x:trendPts[1][0]-4, y:trendPts[1][1]-8, 'text-anchor':'end' });
+    trendLbl.textContent = `ΔP = ${P.dP_sec.toFixed(3)} s/cycle (not significant — see note)`;
+    svg.appendChild(trendLbl);
+  }
+
+  const tooltip = document.getElementById('tooltipOC');
+  const wrap = svg.closest('.chart-wrap');
+
+  RESULTS.forEach(d => {
+    const x = xScale(d.t_calc);
+    const errS = d.OC_err_sec || 0;
+    const yTop = yScale(d.OC_sec + errS);
+    const yBot = yScale(d.OC_sec - errS);
+    const y = yScale(d.OC_sec);
+
+    svg.appendChild(el('line', { class:'errbar', x1:x, x2:x, y1:yTop, y2:yBot }));
+    svg.appendChild(el('line', { class:'errbar', x1:x-4, x2:x+4, y1:yTop, y2:yTop }));
+    svg.appendChild(el('line', { class:'errbar', x1:x-4, x2:x+4, y1:yBot, y2:yBot }));
+
+    const pt = el('circle', { class:'point', cx:x, cy:y, r:5 });
+    svg.appendChild(pt);
+
+    const hit = el('circle', { class:'hit', cx:x, cy:y, r:14, tabindex:0 });
+    hit.addEventListener('pointerenter', show);
+    hit.addEventListener('pointermove', show);
+    hit.addEventListener('focus', show);
+    hit.addEventListener('pointerleave', hide);
+    hit.addEventListener('blur', hide);
+    svg.appendChild(hit);
+
+    function show() {
+      pt.setAttribute('r', 6.5);
+      const rect = wrap.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+      const scaleX = svgRect.width / W;
+      const px = svgRect.left - rect.left + x*scaleX;
+      const py = svgRect.top - rect.top + y*scaleX;
+      tooltip.innerHTML = '';
+      const hd = document.createElement('div'); hd.className='hd'; hd.textContent = `${d.run_start} · E=${d.E}`;
+      tooltip.appendChild(hd);
+      const rows = [
+        ['O–C', `${d.OC_sec>=0?'+':''}${d.OC_sec.toFixed(2)} ± ${errS.toFixed(2)} s`],
+        ['T_obs (HJD)', d.t_obs.toFixed(5)],
+        ['Points used', d.n_points],
+        ['Observer(s)', d.observers.join(', ')]
+      ];
+      rows.forEach(([k,v]) => {
+        const r = document.createElement('div'); r.className='row';
+        const kk = document.createElement('span'); kk.textContent = k;
+        const vv = document.createElement('span'); vv.className='val'; vv.textContent = v;
+        r.appendChild(kk); r.appendChild(vv);
+        tooltip.appendChild(r);
+      });
+      tooltip.style.left = (px+14)+'px';
+      tooltip.style.top = (py-10)+'px';
+      tooltip.classList.add('show');
+    }
+    function hide() {
+      pt.setAttribute('r', 5);
+      tooltip.classList.remove('show');
+    }
+  });
+
+  // table
+  const tbody = document.getElementById('tableBody');
+  RESULTS.forEach(d => {
+    const tr = document.createElement('tr');
+    const cells = [
+      d.E, d.run_start, d.t_calc.toFixed(5), d.t_obs.toFixed(5),
+      (d.OC_sec>=0?'+':'')+d.OC_sec.toFixed(2),
+      '±'+(d.OC_err_sec||0).toFixed(2),
+      d.n_points, d.observers.join(', ')
+    ];
+    cells.forEach((c,i) => {
+      const td = document.createElement('td');
+      if (i===4) td.className='val';
+      td.textContent = c;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  document.getElementById('tableToggle').addEventListener('click', (e) => {
+    const t = document.getElementById('dataTable');
+    t.classList.toggle('show');
+    e.target.textContent = t.classList.contains('show') ? 'Hide data table' : 'Show data table';
+  });
+})();
+
+// ============================================================
+// Chart 2: phase-folded light curve
+// ============================================================
+(function () {
+  const svg = document.getElementById('chartFold');
+  const W = 940, H = 380;
+  const M = { top: 20, right: 28, bottom: 46, left: 56 };
+  const plotW = W - M.left - M.right;
+  const plotH = H - M.top - M.bottom;
+
+  const FOLDED = DATA.folded;
+  const xMin = -0.5, xMax = 0.5;
+  const mags = FOLDED.map(d => d.mag);
+  const magMin = Math.min(...mags), magMax = Math.max(...mags);
+  const padMag = (magMax - magMin) * 0.08;
+  const yTop = magMin - padMag, yBot = magMax + padMag; // brighter (lower mag) at top
+
+  function xScale(ph) { return M.left + (ph - xMin) / (xMax - xMin) * plotW; }
+  function yScale(mag) { return M.top + (mag - yTop) / (yBot - yTop) * plotH; }
+
+  // horizontal gridlines on magnitude, ~6 lines
+  const magRange = yBot - yTop;
+  let step = 0.1;
+  if (magRange > 0.6) step = 0.2;
+  if (magRange > 1.2) step = 0.5;
+  for (let v = Math.ceil(yTop/step)*step; v <= yBot; v += step) {
+    const y = yScale(v);
+    svg.appendChild(el('line', { class:'gridline', x1:M.left, x2:M.left+plotW, y1:y, y2:y }));
+    const lbl = el('text', { class:'tick-label', x:M.left-8, y:y+4, 'text-anchor':'end' });
+    lbl.textContent = v.toFixed(2);
+    svg.appendChild(lbl);
+  }
+
+  // vertical gridlines every 0.1 phase
+  for (let ph = -0.5; ph <= 0.5001; ph += 0.1) {
+    const x = xScale(ph);
+    svg.appendChild(el('line', { class:'axis-line', x1:x, x2:x, y1:M.top+plotH, y2:M.top+plotH+5 }));
+    const lbl = el('text', { class:'tick-label', x:x, y:M.top+plotH+20, 'text-anchor':'middle' });
+    lbl.textContent = ph.toFixed(1);
+    svg.appendChild(lbl);
+  }
+  svg.appendChild(el('line', { class:'axis-line', x1:M.left, x2:M.left+plotW, y1:M.top+plotH, y2:M.top+plotH }));
+
+  // marker at the adopted minimum (phase 0)
+  const x0 = xScale(0);
+  svg.appendChild(el('line', { class:'min-line', x1:x0, x2:x0, y1:M.top, y2:M.top+plotH }));
+  const minLbl = el('text', { class:'trend-label', x:x0+6, y:M.top+12, 'text-anchor':'start' });
+  minLbl.textContent = 'adopted minimum';
+  svg.appendChild(minLbl);
+
+  const yTitle = el('text', { class:'axis-title', x:16, y:M.top+plotH/2, 'text-anchor':'middle',
+    transform:`rotate(-90 16 ${M.top+plotH/2})` });
+  yTitle.textContent = 'Johnson V (mag)';
+  svg.appendChild(yTitle);
+  const xTitle = el('text', { class:'axis-title', x:M.left+plotW/2, y:H-6, 'text-anchor':'middle' });
+  xTitle.textContent = 'Orbital phase';
+  svg.appendChild(xTitle);
+
+  const tooltip = document.getElementById('tooltipFold');
+  const wrap = svg.closest('.chart-wrap');
+  const g = el('g', {});
+  svg.appendChild(g);
+
+  FOLDED.forEach(d => {
+    const x = xScale(d.phase), y = yScale(d.mag);
+    const pt = el('circle', { class:'point2', cx:x, cy:y, r:2.6 });
+    g.appendChild(pt);
+  });
+
+  svg.addEventListener('pointermove', (evt) => {
+    const svgRect = svg.getBoundingClientRect();
+    const rect = wrap.getBoundingClientRect();
+    const scaleX = svgRect.width / W;
+    const mx = (evt.clientX - svgRect.left) / scaleX;
+    const my = (evt.clientY - svgRect.top) / scaleX;
+    if (mx < M.left || mx > M.left+plotW || my < M.top || my > M.top+plotH) {
+      tooltip.classList.remove('show');
+      return;
+    }
+    const phase = xMin + (mx - M.left) / plotW * (xMax - xMin);
+    const mag = yTop + (my - M.top) / plotH * (yBot - yTop);
+    tooltip.innerHTML = '';
+    const hd = document.createElement('div'); hd.className='hd'; hd.textContent = 'Cursor';
+    tooltip.appendChild(hd);
+    const row = document.createElement('div'); row.className='row';
+    const kk = document.createElement('span'); kk.textContent = 'phase / mag';
+    const vv = document.createElement('span'); vv.className='val'; vv.textContent = `${phase.toFixed(3)} / ${mag.toFixed(2)}`;
+    row.appendChild(kk); row.appendChild(vv);
+    tooltip.appendChild(row);
+    tooltip.style.left = (evt.clientX - rect.left + 14) + 'px';
+    tooltip.style.top = (evt.clientY - rect.top - 10) + 'px';
+    tooltip.classList.add('show');
+  });
+  svg.addEventListener('pointerleave', () => tooltip.classList.remove('show'));
+})();
+</script>
